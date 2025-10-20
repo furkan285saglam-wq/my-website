@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Translator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafafa;
+      text-align: center;
+      padding: 30px;
+    }
+    h2 {
+      color: #333;
+    }
+    select, button, textarea {
+      font-size: 16px;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #0078d7;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005fa3;
+    }
+    textarea {
+      width: 90%;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🌍 Voice Translator</h2>
+  <p>Select languages and start speaking</p>
+
+  <div>
+    <label>From:</label>
+    <select id="sourceLang"></select>
+    <label>To:</label>
+    <select id="targetLang"></select>
+  </div>
+
+  <button id="speakBtn">🎤 Start Speaking</button>
+  <textarea id="inputText" placeholder="Detected speech will appear here..."></textarea>
+  <button id="translateBtn">Translate</button>
+  <textarea id="outputText" placeholder="Translation will appear here..."></textarea>
+
+  <script>
+    const sourceLangSelect = document.getElementById("sourceLang");
+    const targetLangSelect = document.getElementById("targetLang");
+    const speakBtn = document.getElementById("speakBtn");
+    const inputText = document.getElementById("inputText");
+    const outputText = document.getElementById("outputText");
+
+    // Tüm desteklenen diller
+    const languages = {
+      ar: "Arabic", zh: "Chinese", en: "English", fr: "French", de: "German",
+      hi: "Hindi", it: "Italian", ja: "Japanese", ko: "Korean",
+      pl: "Polish", pt: "Portuguese", ru: "Russian", es: "Spanish",
+      tr: "Turkish", th: "Thai", uk: "Ukrainian", vi: "Vietnamese"
+    };
+
+    for (const [code, name] of Object.entries(languages)) {
+      const opt1 = document.createElement("option");
+      opt1.value = code;
+      opt1.textContent = name;
+      sourceLangSelect.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = code;
+      opt2.textContent = name;
+      targetLangSelect.appendChild(opt2);
+    }
+
+    sourceLangSelect.value = "en";
+    targetLangSelect.value = "tr";
+
+    // Ses tanıma (Speech-to-Text)
+    let recognition = null;
+    if ("webkitSpeechRecognition" in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+    } else {
+      alert("Your browser does not support voice recognition. Try Chrome.");
+    }
+
+    speakBtn.addEventListener("click", () => {
+      if (!recognition) return alert("Speech recognition not supported.");
+      recognition.lang = sourceLangSelect.value;
+      recognition.start();
+    });
+
+    recognition.onresult = (event) => {
+      inputText.value = event.results[0][0].transcript;
+    };
+
+    // LibreTranslate API
+    document.getElementById("translateBtn").addEventListener("click", async () => {
+      const text = inputText.value;
+      const source = sourceLangSelect.value;
+      const target = targetLangSelect.value;
+
+      if (!text.trim()) return;
+      outputText.value = "Translating...";
+
+      try {
+        const res = await fetch("https://libretranslate.com/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q: text, source, target, format: "text" })
+        });
+
+        const data = await res.json();
+        outputText.value = data.translatedText;
+      } catch (err) {
+        outputText.value = "Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
